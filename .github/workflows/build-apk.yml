@@ -1,0 +1,53 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Restore gradle wrapper (not committed)
+        run: |
+          if [ ! -f android/gradlew ]; then
+            cp "$FLUTTER_ROOT/packages/flutter_tools/templates/app/android.tmpl/gradlew" android/gradlew 2>/dev/null || true
+            cp "$FLUTTER_ROOT/packages/flutter_tools/templates/app/android.tmpl/gradlew.bat" android/gradlew.bat 2>/dev/null || true
+            cp "$FLUTTER_ROOT/packages/flutter_tools/templates/app/android.tmpl/gradle/wrapper/gradle-wrapper.jar" android/gradle/wrapper/gradle-wrapper.jar 2>/dev/null || true
+          fi
+          ls -la android android/gradle/wrapper 2>/dev/null || true
+
+      - name: Flutter pub get
+        run: |
+          flutter pub get
+
+      - name: Flutter analyze
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build APK (release)
+        run: |
+          flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tihama-apk
+          path: build/app/outputs/flutter-apk/*.apk
+          retention-days: 14
