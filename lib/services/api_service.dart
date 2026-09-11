@@ -65,10 +65,10 @@ class ApiService {
   }
 
   Future<void> _refreshAccessToken() async {
-    final r = await _dio.post('/auth/refresh-token', data: {'refresh_token': _refreshToken});
-    final d = r.data['data'] ?? r.data;
+    final r = _d(await _dio.post('/auth/refresh-token', data: {'refresh_token': _refreshToken}));
+    final d = _asMap(r['data']);
     await _saveTokens(d['access_token'], d['refresh_token'] ?? _refreshToken);
-    if (d['user'] != null) _user = User.fromJson(d['user']);
+    if (d['user'] != null) _user = User.fromJson(_asMap(d['user']));
   }
 
   Future<void> logout() async {
@@ -85,7 +85,12 @@ class ApiService {
     _dio.options.baseUrl = url;
   }
 
-  Map<String, dynamic> _d(Response r) => r.data is Map<String, dynamic> ? r.data : {'data': r.data};
+  Map<String, dynamic> _d(Response r) {
+    final d = r.data;
+    return d is Map ? Map<String, dynamic>.from(d) : <String, dynamic>{'data': d};
+  }
+
+  Map<String, dynamic> _asMap(dynamic v) => v is Map ? Map<String, dynamic>.from(v) : <String, dynamic>{};
 
   List _extractItems(Map<String, dynamic> json) {
     final data = json['data'];
@@ -95,27 +100,27 @@ class ApiService {
     return [];
   }
 
-  // ── Auth ──────────────────────────────────────────
+  // ---- Auth ----
   Future<Map<String, dynamic>> register({required String phone, required String name, required String password, int clientId = 1}) async {
     final r = _d(await _dio.post('/auth/register', data: {
       'client_id': clientId, 'name': name, 'phone': phone, 'password': password,
     }));
-    final data = r['data'];
-    if (data is Map && data['access_token'] != null) {
+    final data = _asMap(r['data']);
+    if (data['access_token'] != null) {
       await _saveTokens(data['access_token'], data['refresh_token']);
-      if (data['user'] != null) _user = User.fromJson(data['user']);
+      if (data['user'] != null) _user = User.fromJson(_asMap(data['user']));
     }
-    return data is Map ? data : {};
+    return data;
   }
 
   Future<Map<String, dynamic>> login({required String identifier, required String password}) async {
     final r = _d(await _dio.post('/auth/login', data: {'identifier': identifier, 'password': password}));
-    final data = r['data'];
-    if (data is Map && data['access_token'] != null) {
+    final data = _asMap(r['data']);
+    if (data['access_token'] != null) {
       await _saveTokens(data['access_token'], data['refresh_token']);
-      if (data['user'] != null) _user = User.fromJson(data['user']);
+      if (data['user'] != null) _user = User.fromJson(_asMap(data['user']));
     }
-    return data is Map ? data : {};
+    return data;
   }
 
   Future<void> sendOtp({required String identifier, String purpose = 'login'}) async {
@@ -124,18 +129,18 @@ class ApiService {
 
   Future<Map<String, dynamic>> forgotPassword({required String identifier}) async {
     final r = _d(await _dio.post('/auth/forgot-password', data: {'identifier': identifier, 'purpose': 'forgot'}));
-    return r['data'] ?? {};
+    return _asMap(r['data']);
   }
 
   Future<bool> verifyOtp({required String identifier, required String code, String purpose = 'forgot'}) async {
     final r = _d(await _dio.post('/auth/otp/verify', data: {'identifier': identifier, 'code': code, 'purpose': purpose}));
-    final data = r['data'];
-    if (data is Map && data['access_token'] != null) {
+    final data = _asMap(r['data']);
+    if (data['access_token'] != null) {
       await _saveTokens(data['access_token'], data['refresh_token']);
-      if (data['user'] != null) _user = User.fromJson(data['user']);
+      if (data['user'] != null) _user = User.fromJson(_asMap(data['user']));
       return true;
     }
-    return data is Map && data['verified'] == true;
+    return data['verified'] == true;
   }
 
   Future<void> resetPassword({required String identifier, required String code, required String password}) async {
@@ -144,11 +149,11 @@ class ApiService {
     });
   }
 
-  // ── Profile ───────────────────────────────────────
+  // ---- Profile ----
   Future<User> getProfile() async {
     final r = _d(await _dio.get('/user/profile'));
-    final data = r['data'];
-    _user = User.fromJson(data is Map ? data : r);
+    final data = _asMap(r['data']);
+    _user = User.fromJson(data);
     return _user!;
   }
 
@@ -158,86 +163,83 @@ class ApiService {
       if (email != null) 'email': email,
       if (lang != null) 'lang': lang,
     }));
-    final data = r['data'];
-    _user = User.fromJson(data is Map ? data : r);
+    final data = _asMap(r['data']);
+    _user = User.fromJson(data);
     return _user!;
   }
 
-  // ── Wallet ────────────────────────────────────────
+  // ---- Wallet ----
   Future<Wallet> getBalance() async {
     final r = _d(await _dio.get('/wallet/balance'));
-    final data = r['data'];
-    return Wallet.fromJson(data is Map ? data : r);
+    return Wallet.fromJson(_asMap(r['data']));
   }
 
   Future<List<TransactionModel>> getTransactions({int page = 1}) async {
     final r = _d(await _dio.get('/wallet/transactions', queryParameters: {'page': page}));
     final items = _extractItems(r);
-    return items.map((e) => TransactionModel.fromJson(e)).toList();
+    return items.map((e) => TransactionModel.fromJson(_asMap(e))).toList();
   }
 
-  // ── Catalog ───────────────────────────────────────
+  // ---- Catalog ----
   Future<Map<String, dynamic>> getHomeData() async {
     final r = _d(await _dio.get('/home'));
-    final data = r['data'];
-    return data is Map ? data : {};
+    return _asMap(r['data']);
   }
 
   Future<List<Service>> getServices() async {
     final r = _d(await _dio.get('/services'));
-    return _extractItems(r).map((e) => Service.fromJson(e)).toList();
+    return _extractItems(r).map((e) => Service.fromJson(_asMap(e))).toList();
   }
 
   Future<List<Game>> getGames() async {
     final r = _d(await _dio.get('/games'));
-    return _extractItems(r).map((e) => Game.fromJson(e)).toList();
+    return _extractItems(r).map((e) => Game.fromJson(_asMap(e))).toList();
   }
 
   Future<List<Product>> getGameProducts(int gameId) async {
     final r = _d(await _dio.get('/games/$gameId/products'));
-    return _extractItems(r).map((e) => Product.fromJson(e)).toList();
+    return _extractItems(r).map((e) => Product.fromJson(_asMap(e))).toList();
   }
 
   Future<List<App>> getApps() async {
     final r = _d(await _dio.get('/apps'));
-    return _extractItems(r).map((e) => App.fromJson(e)).toList();
+    return _extractItems(r).map((e) => App.fromJson(_asMap(e))).toList();
   }
 
   Future<List<CardModel>> getCards() async {
     final r = _d(await _dio.get('/cards'));
-    return _extractItems(r).map((e) => CardModel.fromJson(e)).toList();
+    return _extractItems(r).map((e) => CardModel.fromJson(_asMap(e))).toList();
   }
 
-  // ── Orders ────────────────────────────────────────
+  // ---- Orders ----
   Future<Map<String, dynamic>> purchase({required int productId, List<Map<String, dynamic>>? fields}) async {
     final r = _d(await _dio.post('/orders', data: {
       'product_id': productId,
       'fields': fields ?? [],
     }));
-    return r['data'] ?? {};
+    return _asMap(r['data']);
   }
 
   Future<List<Order>> getOrders({int page = 1}) async {
     final r = _d(await _dio.get('/orders', queryParameters: {'page': page}));
-    return _extractItems(r).map((e) => Order.fromJson(e)).toList();
+    return _extractItems(r).map((e) => Order.fromJson(_asMap(e))).toList();
   }
 
   Future<Order> getOrder(String uuid) async {
     final r = _d(await _dio.get('/orders/$uuid'));
-    final data = r['data'];
-    return Order.fromJson(data is Map ? data : r);
+    return Order.fromJson(_asMap(r['data']));
   }
 
-  // ── Notifications ─────────────────────────────────
+  // ---- Notifications ----
   Future<List<NotificationModel>> getNotifications({int page = 1}) async {
     final r = _d(await _dio.get('/notifications', queryParameters: {'page': page}));
-    return _extractItems(r).map((e) => NotificationModel.fromJson(e)).toList();
+    return _extractItems(r).map((e) => NotificationModel.fromJson(_asMap(e))).toList();
   }
 
   Future<int> getUnreadCount() async {
     final r = _d(await _dio.get('/notifications/unread-count'));
-    final data = r['data'];
-    return (data is Map ? data['unread_count'] : 0) ?? 0;
+    final data = _asMap(r['data']);
+    return (data['unread_count'] as num?)?.toInt() ?? 0;
   }
 
   Future<void> markNotificationRead(int id) async {
@@ -248,23 +250,22 @@ class ApiService {
     await _dio.post('/notifications/read-all');
   }
 
-  // ── Support ───────────────────────────────────────
+  // ---- Support ----
   Future<List<SupportTicket>> getTickets() async {
     final r = _d(await _dio.get('/support/tickets'));
-    return _extractItems(r).map((e) => SupportTicket.fromJson(e)).toList();
+    return _extractItems(r).map((e) => SupportTicket.fromJson(_asMap(e))).toList();
   }
 
   Future<SupportTicket> createTicket({required String subject, required String message, String priority = 'normal'}) async {
     final r = _d(await _dio.post('/support/tickets', data: {'subject': subject, 'message': message, 'priority': priority}));
-    final data = r['data'];
-    return SupportTicket.fromJson(data is Map ? data : r);
+    return SupportTicket.fromJson(_asMap(r['data']));
   }
 
   Future<List<SupportMessage>> getTicketMessages(int ticketId) async {
     final r = _d(await _dio.get('/support/tickets/$ticketId/messages'));
-    final data = r['data'];
-    final items = data is Map ? (data['items'] ?? []) : [];
-    return (items as List).map((e) => SupportMessage.fromJson(e)).toList();
+    final data = _asMap(r['data']);
+    final items = data['items'];
+    return (items as List? ?? []).map((e) => SupportMessage.fromJson(_asMap(e))).toList();
   }
 
   Future<void> sendTicketMessage({required int ticketId, required String message}) async {

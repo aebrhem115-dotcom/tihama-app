@@ -311,12 +311,6 @@ class SupportTicket {
       createdAt: json['created_at'],
     );
   }
-
-  String get priorityLabel => switch (priority) {
-    'high' => 'أولوية عالية',
-    'low' => 'أولوية منخفضة',
-    _ => 'أولوية عادية',
-  };
 }
 
 class SupportMessage {

@@ -121,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(labelText: 'رقم الهاتف', prefixIcon: Icon(Icons.phone_outlined)),
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'أدخل رقم الهاتف' : null,
-                  inputFormatters: [FilteringTextInputFormatter.digitsAllow(RegExp(r'[0-9+\-]'))],
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+\\-]'))],
                 ),
                 const SizedBox(height: 16),
 
