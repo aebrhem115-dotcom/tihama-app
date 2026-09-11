@@ -1,8 +1,3 @@
-org = "com.tihama.app"
-name = "TihamaApp"
-description = "Tihama Yemen Fintech Super-App"
-version = "1.0+1"
-
 buildscript {
     repositories {
         google()
