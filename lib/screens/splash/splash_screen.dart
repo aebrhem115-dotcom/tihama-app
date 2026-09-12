@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
+import '../../services/api_service.dart';
 import '../auth/login_screen.dart';
 import '../home/home_shell.dart';
 
@@ -25,8 +26,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Future<void> _navigate() async {
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
+    final loggedIn = ApiService().isLoggedIn;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HomeShell()),
+      MaterialPageRoute(builder: (_) => loggedIn ? const HomeShell() : const LoginScreen()),
     );
   }
 

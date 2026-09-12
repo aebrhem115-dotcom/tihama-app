@@ -16,6 +16,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _api = ApiService();
   bool _loading = true;
+  String? _error;
   List<Service> _services = [];
   List<Game> _games = [];
   List<App> _apps = [];
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
     try {
       final res = await _api.getHomeData();
       setState(() {
@@ -36,7 +38,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _banners = (res['banners'] as List?)?.map((e) => BannerModel.fromJson(e)).toList() ?? [];
         _loading = false;
       });
-    } catch (_) { setState(() => _loading = false); }
+    } catch (e) {
+      setState(() { _loading = false; _error = 'تعذر الاتصال بالخادم — تأكد من أن الهاتف والكمبيوتر على نفس الشبكة'; });
+    }
   }
 
   Future<void> _openGameProducts(Game game) async {
@@ -70,7 +74,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: _loading
         ? const Center(child: CircularProgressIndicator())
-        : RefreshIndicator(
+        : _error != null && _services.isEmpty && _games.isEmpty
+          ? _errorView()
+          : RefreshIndicator(
           onRefresh: _load,
           child: ListView(
             padding: const EdgeInsets.all(16),
@@ -150,6 +156,30 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+    );
+  }
+
+  Widget _errorView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off_outlined, size: 64, color: AppTheme.textSecondary),
+            const SizedBox(height: 16),
+            const Text('تعذر الاتصال بالخادم', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text('تأكد أن الهاتف والكمبيوتر متصلان بنفس شبكة الواي فاي', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textSecondary)),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh),
+              label: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
