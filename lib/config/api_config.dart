@@ -4,7 +4,7 @@ class ApiConfig {
   static const String appName = 'تهامة يمن';
   static const String appNameEn = 'Tihama Yemen';
 
-  static String _baseUrl = 'http://10.0.2.2:8000/api';
+  static String _baseUrl = 'http://192.180.4.63:8000/api';
   static String get baseUrl => _baseUrl;
 
   static void setBaseUrl(String url) {
@@ -21,6 +21,7 @@ class ApiConfig {
   static const String storageBaseurlKey = 'base_url';
 
   static const List<Map<String, String>> defaultProviders = [
+    {'label': 'خادم الجهاز (LAN)', 'value': 'http://192.180.4.63:8000/api'},
     {'label': 'الخادم المحلي', 'value': 'http://10.0.2.2:8000/api'},
     {'label': 'الإنتاج', 'value': 'https://api.tihama.ye/api'},
   ];
