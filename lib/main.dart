@@ -5,6 +5,8 @@ import 'services/api_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await ApiService().init();
+  try {
+    await ApiService().init();
+  } catch (_) {}
   runApp(const ProviderScope(child: TihamaApp()));
 }

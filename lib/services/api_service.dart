@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../models/models.dart';
 
 class ApiService {
   late final Dio _dio;
-  final _storage = const FlutterSecureStorage();
+  SharedPreferences? _prefs;
   String? _token;
   String? _refreshToken;
   User? _user;
@@ -51,17 +51,25 @@ class ApiService {
   User? get currentUser => _user;
 
   Future<void> init() async {
-    _token = await _storage.read(key: ApiConfig.storageTokenKey);
-    _refreshToken = await _storage.read(key: ApiConfig.storageRefreshKey);
-    final savedUrl = await _storage.read(key: ApiConfig.storageBaseurlKey);
-    if (savedUrl != null) _dio.options.baseUrl = savedUrl;
+    try {
+      _prefs = await SharedPreferences.getInstance();
+      _token = _prefs?.getString(ApiConfig.storageTokenKey);
+      _refreshToken = _prefs?.getString(ApiConfig.storageRefreshKey);
+      final savedUrl = _prefs?.getString(ApiConfig.storageBaseurlKey);
+      if (savedUrl != null) _dio.options.baseUrl = savedUrl;
+    } catch (_) {
+      _token = null;
+      _refreshToken = null;
+    }
   }
 
   Future<void> _saveTokens(String token, String? refresh) async {
     _token = token;
     _refreshToken = refresh;
-    await _storage.write(key: ApiConfig.storageTokenKey, value: token);
-    if (refresh != null) await _storage.write(key: ApiConfig.storageRefreshKey, value: refresh);
+    try {
+      await _prefs?.setString(ApiConfig.storageTokenKey, token);
+      if (refresh != null) await _prefs?.setString(ApiConfig.storageRefreshKey, refresh);
+    } catch (_) {}
   }
 
   Future<void> _refreshAccessToken() async {
@@ -76,12 +84,14 @@ class ApiService {
     _token = null;
     _refreshToken = null;
     _user = null;
-    await _storage.delete(key: ApiConfig.storageTokenKey);
-    await _storage.delete(key: ApiConfig.storageRefreshKey);
+    try {
+      await _prefs?.remove(ApiConfig.storageTokenKey);
+      await _prefs?.remove(ApiConfig.storageRefreshKey);
+    } catch (_) {}
   }
 
   Future<void> saveBaseUrl(String url) async {
-    await _storage.write(key: ApiConfig.storageBaseurlKey, value: url);
+    try { await _prefs?.setString(ApiConfig.storageBaseurlKey, url); } catch (_) {}
     _dio.options.baseUrl = url;
   }
 
